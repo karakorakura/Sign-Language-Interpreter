@@ -135,17 +135,61 @@ def getDenoisedImage(frame):
     cv2.imshow('after medianBlur',frameBlurred)
     return frameBlurred
 
-def getSkinMaskedImage(mask,frameYCrCb):
+def getSkinMaskedImage1(mask,frameYCrCb):
         # minRangeYCrCb = np.array([0,133,77], np.uint8)
         # minRangeYCrCb = np.array([255,173,127], np.uint8)
         # modified test skin colour
-        minRangeYCrCb = np.array([0,106,56], np.uint8)
-        maxRangeYCrCb = np.array([255,185,145], np.uint8)
+        minRangeYCrCb = np.array([16,133,77], np.uint8)
+        maxRangeYCrCb = np.array([240,173,127], np.uint8)
         frameMasked   = cv2.bitwise_and(frameYCrCb,frameYCrCb,mask= mask)
         cv2.imshow('masked YcbCr',frameMasked)
         skinRegion = cv2.inRange(frameMasked,minRangeYCrCb,maxRangeYCrCb)
         cv2.imshow('skinRegion',skinRegion)
+
+
+
+
+
         return skinRegion
+
+def thresholdOtsu(frame):
+	ret,thresh1 = cv2.threshold(frame,75,255,cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU)
+	return thresh1
+
+
+
+
+def regionFilling(frame):
+	#Have to Tune structuring element
+	kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+	dilation = cv2.dilate(frame,kernel,iterations = 1)
+	img_bw = 255*(frame> 5).astype('uint8')
+	#opencv.imshow("dilate",dilation)
+	return dilation
+
+
+def getSkinMaskedImage2(mask,frame):
+    frameMasked   = cv2.bitwise_and(frame,frame,mask= mask)
+    converted = cv2.cvtColor(frameMasked, cv2.COLOR_BGR2HSV) # Convert from RGB to HSV
+    # tuned settings
+    lowerBoundary = np.array([0,40,30],dtype="uint8")
+    upperBoundary = np.array([43,255,254],dtype="uint8")
+    skinMask = cv2.inRange(converted, lowerBoundary, upperBoundary)
+    # apply a series of erosions and dilations to the mask using an elliptical kernel
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
+    skinMask = cv2.erode(skinMask, kernel, iterations = 2)
+    skinMask = cv2.dilate(skinMask, kernel, iterations = 2)
+
+    lowerBoundary = np.array([170,80,30],dtype="uint8")
+    upperBoundary = np.array([180,255,250],dtype="uint8")
+    skinMask2 = cv2.inRange(converted, lowerBoundary, upperBoundary)
+
+    skinMask = cv2.addWeighted(skinMask,0.5,skinMask2,0.5,0.0)
+    # blur the mask to help remove noise, then apply the
+    # mask to the frame
+    skinMask = cv2.medianBlur(skinMask, 5)
+    return skinMask
+
 
 
   ##############################################################################################
@@ -167,7 +211,14 @@ while True:
     frameGRAY = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
     frameBinary = getBinaryImage(frame,frameYCrCb,frameGRAY)
     frameDenoised = getDenoisedImage(frameBinary)
-    frameSkinMasked = getSkinMaskedImage(frameDenoised,frameYCrCb)
+    frameSkinMasked1 = getSkinMaskedImage1(frameDenoised,frameYCrCb)
+    frameSkinMasked2 = getSkinMaskedImage2(frameDenoised,frame)
+    frameSkinMasked = frameSkinMasked1 + frameSkinMasked2
+    cv2.imshow('skinmasked ++ ', frameSkinMasked)
+    frameFilled = regionFilling(frameSkinMasked)
+    frameSkin  =  cv2.bitwise_and(frame,frame,mask=frameFilled)
+    cv2.imshow('skinmasked ++ RGB ', frameSkin)
+
 
 
 
