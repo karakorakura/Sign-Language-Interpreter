@@ -1,4 +1,5 @@
 import numpy as np
+import sys
 import cv2
 from Tkinter import *
 from PIL import Image
@@ -42,7 +43,7 @@ def backgroundDetect(buffer =None ):
     # cv2.imshow(winName1,frame)
     for i in range(k+1):
         ret,f = videoReader.read(); # read the next video frame
-        print "#",
+        sys.stdout.write("#");
         # cv2.imshow(winName1,f);
         if( i == 1):
             height,width = f.shape[:2];
@@ -59,7 +60,7 @@ def backgroundDetect(buffer =None ):
 
         if (t<=buf and i>=start and r[t] == i%stride):
             # cv2.imshow('222',f);
-            print t," "
+            print t,
             framesR[:,:,t] = f[:,:,0];
             framesG[:,:,t] = f[:,:,1];
             framesB[:,:,t] = f[:,:,2];
@@ -200,11 +201,10 @@ def getSkinMaskedImage2(mask,frame):
  #                                     MAIN                                                   #
 ##############################################################################################
 
-print " prompt to start background subtraction Press any key \n Get out of the frame afte pressing the key"
-while True:
-    if cv2.waitKey(1):
-        break
-
+print " prompt to start background subtraction Press any key \n Get out of the frame after pressing the key q"
+keyStroke = 'n'
+while keyStroke != 'y' and keyStroke != 'Y' and keyStroke != 'q' and keyStroke != 'Q':
+    keyStroke = str(raw_input("press y/Y/q/Q to start background detection"));
 
 backgroundFrame=backgroundDetect(buffer=20);
 backgroundFrameRGB=cv2.flip(backgroundFrame,1);# flip like frames so subtraction can be even
