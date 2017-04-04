@@ -35,10 +35,14 @@ def backgroundDetect(buffer =None ):
     k = start+stride*buf;
     diff = np.zeros(1,np.float64);
 
+    print "reading frames",
     ret,frame = videoReader.read();
+
+
     # cv2.imshow(winName1,frame)
     for i in range(k+1):
         ret,f = videoReader.read(); # read the next video frame
+        print "#",
         # cv2.imshow(winName1,f);
         if( i == 1):
             height,width = f.shape[:2];
@@ -55,7 +59,7 @@ def backgroundDetect(buffer =None ):
 
         if (t<=buf and i>=start and r[t] == i%stride):
             # cv2.imshow('222',f);
-            print t
+            print t," "
             framesR[:,:,t] = f[:,:,0];
             framesG[:,:,t] = f[:,:,1];
             framesB[:,:,t] = f[:,:,2];
@@ -63,7 +67,7 @@ def backgroundDetect(buffer =None ):
 
 
         # %foreground = step(foregroundDetector, frame);
-
+    print " \n frame reading finished, Now you can come back here in front of camera\n"
     background = f;
     temp=stats.mode(framesR,2)[0];
     # print temp;
@@ -119,7 +123,7 @@ def getBinaryImage(frame,frameYCrCb,frameGRAY):
     cv2.imshow('test binaryFrameYCrCb', binaryFrameYCrCb)
 
     subtractedFrameGRAY = abs( frameGRAY - backgroundFrameGRAY )
-    minBinaryRangeGRAY = np.array([25], np.uint8)
+    minBinaryRangeGRAY = np.array([40], np.uint8)
     maxBinaryRangeGRAY = np.array([245], np.uint8)
     binaryFrameGRAY = cv2.inRange( subtractedFrameGRAY, minBinaryRangeGRAY,maxBinaryRangeGRAY)
     cv2.imshow('test binaryFrameGRAY', binaryFrameGRAY)
@@ -196,6 +200,11 @@ def getSkinMaskedImage2(mask,frame):
  #                                     MAIN                                                   #
 ##############################################################################################
 
+print " prompt to start background subtraction Press any key \n Get out of the frame afte pressing the key"
+while True:
+    if cv2.waitKey(1):
+        break
+
 
 backgroundFrame=backgroundDetect(buffer=20);
 backgroundFrameRGB=cv2.flip(backgroundFrame,1);# flip like frames so subtraction can be even
@@ -211,6 +220,7 @@ while True:
     frameGRAY = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
     frameBinary = getBinaryImage(frame,frameYCrCb,frameGRAY)
     frameDenoised = getDenoisedImage(frameBinary)
+    frameDenoised =  regionFilling(frameDenoised) ##### test optional stage
     frameSkinMasked1 = getSkinMaskedImage1(frameDenoised,frameYCrCb)
     frameSkinMasked2 = getSkinMaskedImage2(frameDenoised,frame)
     frameSkinMasked = frameSkinMasked1 + frameSkinMasked2
